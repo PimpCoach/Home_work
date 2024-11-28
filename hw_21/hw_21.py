@@ -2,15 +2,30 @@ from random import choice
 from cities import cities_list as cl
 
 city_set = set()
-
 city_set = {city['name'] for city in cl}
 
 last_city = ''
-bad_letters = {'ь', 'ъ', 'ы', 'й'}
+
+bad_letters = set()
+sym_lower_set = set(
+    " ".join(city_set).lower()
+)
+
+count = 0
+
+for letter in sym_lower_set:
+    for city in city_set:
+        first_letter = city[0]
+        count += 1
+        if letter.lower() == first_letter.lower():
+            break
+    else:
+        bad_letters.add(letter)
+
 
 while True:
     print("Для выхода из игры напишите слово 'стоп'")
-    user_input = input("Введите название города: ").capitalize()
+    user_input = input("Введите название города: ").title()
 
     if user_input == "Стоп":
         print("Вы проиграли!")
@@ -44,7 +59,7 @@ while True:
             result.append(city)
             
     if not result:
-        print(f"Поздравляю! Вы победили! \nГородов на букву '{user_input[-1].capitalize()}' больше нет")
+        print(f"Поздравляю! Вы победили! \nГородов на букву '{user_input[-1].title()}' больше нет")
         break
 
     comp_city = choice(result)
