@@ -1,0 +1,4 @@
+plyer==2.1.0
+pyinstaller==6.11.1
+requests==2.32.3
+
