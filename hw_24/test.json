@@ -12,17 +12,5 @@
         "house": 12,
         "city": "Москва",
         "zipCode": "123456"
-    },
-    "languages": [
-        {
-            "name": "Python",
-            "level": "advanced",
-            "yearsOfExperience": 3
-        },
-        {
-            "name": "JavaScript",
-            "level": "intermediate",
-            "yearsOfExperience": 1.5
-        }
-    ]
+    }
 }
