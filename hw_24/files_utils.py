@@ -34,12 +34,28 @@ def read_csv(file_path, delimiter=";", encoding: str = "utf-8-sig") -> list:
         return list(reader)
 
 
-def write_csv(data, file_patch, delimiter=';', encoding: str ="utf-8-sig") -> None:
-    with open(file_patch, 'w', encoding=encoding) as file:
-        writer = csv.writer(file, delimiter=delimiter, lineterminator='\n')
+def write_csv(data, file_patch, delimiter=";", encoding: str = "utf-8-sig") -> None:
+    with open(file_patch, "w", encoding=encoding) as file:
+        writer = csv.writer(file, delimiter=delimiter, lineterminator="\n")
         writer.writerow(data)
 
-def append_csv(data, file_patch, delimiter=';', encoding: str ='utf-8-sig') -> None:
-    with open(file_patch, 'a', encoding=encoding) as file:
-        writer = csv.writer(file, delimiter=delimiter,lineterminator='\n')
+
+def append_csv(data, file_patch, delimiter=";", encoding: str = "utf-8-sig") -> None:
+    with open(file_patch, "a", encoding=encoding) as file:
+        writer = csv.writer(file, delimiter=delimiter, lineterminator="\n")
         writer.writerow(data)
+
+
+# Работа с TXT
+def read_txt(file_path, encoding: str = "utf-8") -> str:
+    with open(file_path, "r", encoding=encoding) as file:
+        return file.read()
+
+
+def write_txt(data, file_path, encoding: str = "utf-8") -> None:
+    with open(file_path, "w", encoding=encoding) as file:
+        file.write(data)
+
+def append_txt(data, file_path, encoding: str = "utf-8") -> None:
+    with open(file_path, 'a', encoding=encoding) as file:
+        file.write(data + '\n')
