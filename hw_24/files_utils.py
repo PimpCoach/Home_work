@@ -59,3 +59,13 @@ def write_txt(data, file_path, encoding: str = "utf-8") -> None:
 def append_txt(data, file_path, encoding: str = "utf-8") -> None:
     with open(file_path, 'a', encoding=encoding) as file:
         file.write(data + '\n')
+
+
+#Работа с YAML
+import yaml
+
+
+def read_yaml(file_path: str, encoding: str = "utf-8") -> dict:
+    with open(file_path, 'r', encoding=encoding) as file:
+        return yaml.safe_load(file)
+
