@@ -8,3 +8,6 @@ from marvel import full_dict as fd
 
 director_movies = {movie[1]['director'] for movie in fd.items()}
 print(director_movies)
+
+full_dict_copy = {key: {**full_dict, 'year': str(full_dict['year'])} for key, full_dict in fd.items()}
+print(full_dict_copy)
