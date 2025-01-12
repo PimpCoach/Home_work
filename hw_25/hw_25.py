@@ -15,6 +15,10 @@ from marvel import full_dict as fd
 # dict_for_letter = dict(filter(lambda film: film[1]['title'] and film[1]['title'][0] == "Ч", fd.items()))
 # print(dict_for_letter)
 
-sorted_full_dict = sorted(fd.items(), key=lambda film: film[1]['director'])
-print(sorted_full_dict)
+# sorted_full_dict = sorted(fd.items(), key=lambda film: film[1]["director"])
+# print(sorted_full_dict)
 
+sorted_full_dict_2 = sorted(
+    fd.items(), key=lambda film: (film[1]["director"], film[1]["title"] or "")
+)
+print(sorted_full_dict_2)
