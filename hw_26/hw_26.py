@@ -1,7 +1,7 @@
 import re
 from typing import Callable, Any 
 
-
+# Декоратор для проверки пароля
 def password_checker(func: Callable):
     def wrapper(args: Any):
         
@@ -29,10 +29,12 @@ def password_checker(func: Callable):
     
     return wrapper
 
+#Декорируемая функция, которая возращает сообщение об успешной проверке, если пароль соответвует всем критериям
 @password_checker
 def register_user(password):
     return f"Пароль {password} прошел проверку"
 
+#Принты для проверки разных вариантов паролей
 print(register_user('qwerty'))
 print(register_user('qwertyyy'))
 print(register_user('qwerty123'))
