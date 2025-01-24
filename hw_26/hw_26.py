@@ -3,6 +3,8 @@ from typing import Callable, Any
 
 # Декоратор для проверки пароля
 def password_checker(func: Callable):
+    
+    #Внутрення функиця декоратора, которая проверяет пароль
     def wrapper(args: Any):
         
         # Минимальная длина
