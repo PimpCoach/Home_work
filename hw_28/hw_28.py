@@ -60,3 +60,16 @@ class TxtFileHandler:
                 print(f'Ошибка доступа при чтении файла {file_path}')
                 return False
 
+# Пример использования
+
+handler = TxtFileHandler()
+
+# Запись в файл
+handler.write_file("my_file.txt", "This is a test string.\n")
+
+# Добавление в файл
+handler.append_file("my_file.txt", "This is another string.\n")
+
+# Чтение из файла
+content = handler.read_file("my_file.txt")
+print(content)
