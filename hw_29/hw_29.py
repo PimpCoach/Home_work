@@ -1,10 +1,29 @@
 import os
+from typing import Tuple, Literal
 
-from typing import Union
 from PIL import Image
 from pillow_heif import register_heif_opener
 
-QUALITY: int = 50  # Можно настроить качество сжатия
+
+class ImageCompressor:
+    # Атрибут класса поддерживаемых форматов файлов
+    supported_format: Tuple[Literal] = (".png", ".jpg", ".jpeg")
+
+    # Конструктор класса со значением качества сжатия(по умолчанию 50)
+    def __init__(self, quality: int = 50) -> None:
+        self.__quality = quality
+
+    # Получаем текущее значение качества сжатия
+    @property
+    def quality(self) -> int:
+        return self.__quality
+
+    # Устанавливаем новое значение качества сжатия
+    @quality.setter
+    def quality(self, quality: int) -> None:
+        if not 0 < quality <= 100:
+            raise ValueError("Качество должно быть от 0 до 100")
+        self.__quality = quality
 
 def compress_image(input_path: str, output_path: str) -> None:
     """
@@ -34,9 +53,9 @@ def process_directory(directory: str) -> None:
     for root, _, files in os.walk(directory):
         for file in files:
             # Проверяем расширение файла
-            if file.lower().endswith(('.jpg', '.jpeg', '.png')):
+            if file.lower().endswith((".jpg", ".jpeg", ".png")):
                 input_path = os.path.join(root, file)
-                output_path = os.path.splitext(input_path)[0] + '.heic'
+                output_path = os.path.splitext(input_path)[0] + ".heic"
                 compress_image(input_path, output_path)
 
 def main(input_path: str) -> None:
@@ -51,12 +70,12 @@ def main(input_path: str) -> None:
     """
     register_heif_opener()
     input_path = input_path.strip('"')  # Удаляем кавычки, если они есть
-    
+
     if os.path.exists(input_path):
         if os.path.isfile(input_path):
             # Если указан путь к файлу, обрабатываем только этот файл
             print(f"Обрабатываем файл: {input_path}")
-            output_path = os.path.splitext(input_path)[0] + '.heic'
+            output_path = os.path.splitext(input_path)[0] + ".heic"
             compress_image(input_path, output_path)
         elif os.path.isdir(input_path):
             # Если указан путь к директории, обрабатываем все файлы в ней
