@@ -2,6 +2,7 @@ import json
 import csv
 
 from abc import ABC, abstractmethod
+from typing import Any, Dict
 
 
 class AbstractFile(ABC):
@@ -10,39 +11,80 @@ class AbstractFile(ABC):
     """
 
     @abstractmethod
-    def read(self):
+    def read(self) -> Any:
         """
         Абстрактный метод для чтения данных из файла
-
         Returns:
-            Данные, прочитанные из файла
-            
+            Any: Данные, прочитанные из файла
         """
         pass
 
     @abstractmethod
-    def write(self, data) -> None:
+    def write(self, data: Any) -> None:
         """
         Абстрактный метод для записи данных в файл
-
         Args:
-            data: данные которые нужно записать
-
+            data (Any): данные которые нужно записать
         Returns:
             None
         """
         pass
 
     @abstractmethod
-    def append(self, data) -> None:
+    def append(self, data: Any) -> None:
         """
         Абстрактный метод для добалвения данных в файл
-
         Args:
-            data: данные которые нужно добавить
-
+            data(Any): данные которые нужно добавить
         Returns:
             None
         """
         pass
 
+
+class JsonFile(AbstractFile):
+    """
+    Класс для работы с JSON файлами
+    Чтение, запись и добавление
+    """
+
+    def __init__(self, file_path: str):
+        """
+        Инициализотор обработчика файла
+        Args:
+            file_path (str): Путь к файлу
+        """
+        self.file_path = file_path
+
+    def read(self) -> Dict[str, Any]:
+        """
+        Чтение данных из JSON файла
+        Returns:
+            Dict[str, Any]: Данные из JSON файла
+        """
+        with open(self.file_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    def write(self, data):
+        """
+        Запись данных в JSON файл
+        Args:
+            data (Dict[str, Any]): Данные которые нужно записать в файл
+        Returns:
+            None
+        """
+
+        with open(self.file_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+
+    def append(self, data):
+        """
+        Добавление данных в существующий JSON файл
+        Args:
+            data(Dict[str, Any]): данные которые нужно добавить в файл
+        Returns:
+            None
+        """
+        with open(self.file_path, "r", encoding="utf-8") as f:
+            data_json = json.load(f)
+            data_json.update(data)
