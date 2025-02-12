@@ -134,3 +134,51 @@ class TxtFile(AbstractFile):
         """
         with open(self.file_path, 'a', encoding='utf-8') as f:
             f.write(data + '\n')
+
+
+class CsvFile(AbstractFile):
+    """
+    Класс для работы с CSV файлами
+    Чтение, запись и добавление
+    """
+
+    def __init__(self, file_path: str):
+        """
+        Инициализотор обработчика файла
+        Args:
+            file_path (str): Путь к файлу
+        """
+        self.file_path = file_path
+
+    def read(self) -> list:
+        """
+        Чтение данных из CSV файла
+        Returns:
+            list: данные из CSV документа в виде списка с разделитем "; "
+        """
+        with open(self.file_path, 'r', encoding = 'utf-8-sig') as f:
+            return list(csv.reader(f, delimiter="; "))
+
+    def write(self, data: list) -> None:
+        """
+        Запись данных в CSV файл
+        Args:
+            data (list): данные которые нужно записать в CSV файл
+        Returns:
+            None
+        """
+        with open(self.file_path, 'w', encoding ='utf-8-sig') as f:
+            writer = csv.writer(f, delimiter='; ', lineterminator='\n')
+            writer.writerow(data)
+
+    def append(self, data: list) -> None:
+        """
+        Добавлние данных в CSV файл
+        Args:
+            data (list): данные которые нужно добавить в CSV файл
+        Returns:
+            None
+        """
+        with open(self.file_path, 'a', encoding='utf-8-sig') as f:
+            writer = csv.writer(f, delimiter='; ', lineterminator='\n')
+            writer.writerow(data)
