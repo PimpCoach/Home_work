@@ -65,7 +65,7 @@ class JsonFile(AbstractFile):
         with open(self.file_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    def write(self, data):
+    def write(self, data: dict[str, Any]) -> None:
         """
         Запись данных в JSON файл
         Args:
@@ -77,7 +77,7 @@ class JsonFile(AbstractFile):
         with open(self.file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
 
-    def append(self, data):
+    def append(self, data: dict[str, Any]) -> None:
         """
         Добавление данных в существующий JSON файл
         Args:
@@ -88,3 +88,49 @@ class JsonFile(AbstractFile):
         with open(self.file_path, "r", encoding="utf-8") as f:
             data_json = json.load(f)
             data_json.update(data)
+
+
+class TxtFile(AbstractFile):
+    """
+    Класс дря работы с TXT файлами
+    Чтение, запись и добавление
+    """
+
+    def __init__(self, file_path: str):
+        """
+        Инициализотор обработчика файла
+        Args:
+            file_path (str): Путь к файлу
+        """
+        self.file_path = file_path
+
+    def read(self) -> str:
+        """
+        Чтение данных из TXT файла
+        Returns:
+            str: Данные из TXT документа
+        """
+        with open(self.file_path, 'r', encoding= 'utf-8') as f:
+            return f.read()
+
+    def write(self, data: str) -> None:
+        """
+        Запись данных в TXT документ
+        Args:
+            data (str): данные которые нужно записать в файл
+        Returns:
+            None
+        """
+        with open(self.file_path, 'w', encoding= 'utf-8') as f:
+            f.write(data)
+
+    def append(self, data:str):
+        """
+        Добавление данных в существующий TXT документ
+        Args:
+            data (str): данные которые нужно добавить в файл
+        Returns:
+            None
+        """
+        with open(self.file_path, 'a', encoding='utf-8') as f:
+            f.write(data + '\n')
