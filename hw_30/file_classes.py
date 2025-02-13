@@ -159,7 +159,7 @@ class CsvFile(AbstractFile):
             list: данные из CSV документа в виде списка с разделитем "; "
         """
         with open(self.file_path, 'r', encoding = 'utf-8-sig') as f:
-            return list(csv.reader(f, delimiter="; "))
+            return list(csv.reader(f, delimiter=";"))
 
     def write(self, data: list) -> None:
         """
@@ -170,7 +170,7 @@ class CsvFile(AbstractFile):
             None
         """
         with open(self.file_path, 'w', encoding ='utf-8-sig') as f:
-            writer = csv.writer(f, delimiter='; ', lineterminator='\n')
+            writer = csv.writer(f, delimiter=';', lineterminator='\n')
             writer.writerow(data)
 
     def append(self, data: list) -> None:
@@ -182,5 +182,5 @@ class CsvFile(AbstractFile):
             None
         """
         with open(self.file_path, 'a', encoding='utf-8-sig') as f:
-            writer = csv.writer(f, delimiter='; ', lineterminator='\n')
+            writer = csv.writer(f, delimiter=';', lineterminator='\n')
             writer.writerow(data)
