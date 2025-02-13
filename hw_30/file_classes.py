@@ -85,9 +85,11 @@ class JsonFile(AbstractFile):
         Returns:
             None
         """
-        with open(self.file_path, "r", encoding="utf-8") as f:
-            data_json = json.load(f)
-            data_json.update(data)
+        data_json =  self.read()
+
+        data_json.update(data)
+
+        self.write(data_json)
 
 
 class TxtFile(AbstractFile):
