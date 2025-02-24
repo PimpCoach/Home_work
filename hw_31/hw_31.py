@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from random import choice
 from typing import Any
 import json
+import os
 
 
 @dataclass
@@ -34,11 +35,11 @@ class JsonFile:
             print(f"Ошибка декодирования JSON в файле {self.file_path}!")
             return None
 
-    def write_data(self, data: dict[str, Any]) -> bool:
+    def write_data(self, data: list[dict[str, Any]]) -> bool:
         """
         Запись данных в JSON файл
         Args:
-            data dict[str, Any]): Данные которые нужно записать
+            data list[dict[str, Any]]): Данные которые нужно записать
         Returns:
             True: Если данные успешно записались
             False: Если произошла ошибка
@@ -95,7 +96,7 @@ class CitiesSerializer:
                 - "lat" (float): Широта.
                 - "lon" (float): Долгота.
         """
-        self.cities = []
+        self.cities: list[City] = []
         for city in city_data:
             self.cities.append(
                 City(
@@ -120,15 +121,18 @@ class CitiesSerializer:
 class CityGame:
     """
     Класс для управления логики игры
-    Attributes:
-        cities (CitiesSerializer): Объект для работы с данными о городах
-        used_cities (set[str]): Использованные города
-        last_city (str): Последний город
-        city_list (list[str]): Список всех городов
-        bad_letters (set): Буквы, которые не используются в названиях городов
     """
 
     def __init__(self, cities: CitiesSerializer) -> None:
+        """
+        Инициализирует состояние игры
+        Attributes:
+            cities (CitiesSerializer): Объект для работы с данными о городах
+            used_cities (set[str]): Использованные города
+            last_city (str): Последний город
+            city_list (list[str]): Список всех городов
+            bad_letters (set): Буквы, которые не используются в названиях городов
+        """
         self.cities: CitiesSerializer = cities
         self.used_cities: set[str] = set()
         self.last_city: str = ""
@@ -156,7 +160,7 @@ class CityGame:
             all_last_letters.add(city[-1].lower())
             all_first_letters.add(city[0].lower())
 
-        bad_letters = all_last_letters - all_first_letters
+        bad_letters: set = all_last_letters - all_first_letters
         return bad_letters
 
     def _last_letter(self) -> str:
@@ -175,8 +179,8 @@ class CityGame:
         """
         Начинает игру, включая первый ход компьютера
         """
-        print("Игра началась")
-        first_city = choice(self.cities_list)
+        print("\nИгра началась")
+        first_city: str = choice(self.cities_list)
         self.last_city = first_city
         self.used_cities.add(first_city)
         self.cities_list.remove(first_city)
@@ -194,25 +198,30 @@ class CityGame:
                 False, если человек ошибся
         """
         if city_input.lower() == "стоп":
-            print("Игра окончена!")
+            print("\nИгра окончена!")
+            self._delete_game_state()
             return False
 
-        last_letter = self._last_letter().upper()
+        last_letter: str = self._last_letter().upper()
         if city_input[0].upper() != last_letter:
-            print(f"Город должен начинаться на букву {last_letter}. Вы проиграли!")
+            print(f"\nГород должен начинаться на букву {last_letter}. Вы проиграли!")
+            self._delete_game_state()
             return False
 
         if city_input not in self.cities_list:
-            print("Такого города нет. Вы проиграли!")
+            print("\nТакого города нет. Вы проиграли!")
+            self._delete_game_state()
             return False
 
         if city_input in self.used_cities:
-            print("Этот город уже был использован!")
+            print("\nтот город уже был использован. Вы проиграли!")
+            self._delete_game_state()
             return False
 
         self.cities_list.remove(city_input)
         self.used_cities.add(city_input)
         self.last_city = city_input
+        self._save_game_state()
         return True
 
     def computer_turn(self) -> None:
@@ -220,18 +229,24 @@ class CityGame:
         Обрабатывает ход компьютера
         Создает список городов, которые можно использовать и выбирает один из них случайным образом
         """
-        last_letter = self._last_letter().upper()
+        last_letter: str = self._last_letter().upper()
 
-        computer_city_list: list[str] = [city for city in self.cities_list if city not in self.used_cities and city[0].upper() == last_letter]
+        computer_city_list: list[str] = [
+            city
+            for city in self.cities_list
+            if city not in self.used_cities and city[0].upper() == last_letter
+        ]
 
         if computer_city_list:
-            computer_city = choice(computer_city_list)
-            print(f"\nКомпьютер выбирает: {computer_city}\n")
+            computer_city: str = choice(computer_city_list)
+            print(f"\nКомпьютер выбирает: {computer_city}")
             self.cities_list.remove(computer_city)
             self.used_cities.add(computer_city)
             self.last_city = computer_city
+            self._save_game_state()
         else:
-            print("Компьютер не смог найти подходящий город. Вы выиграли!")
+            print("\nКомпьютер не смог найти подходящий город. Вы выиграли!")
+            self._delete_game_state()
 
     def check_game_over(self) -> bool:
         """
@@ -240,9 +255,13 @@ class CityGame:
             bool: True, если все города использованы
                 False, если есть города
         """
-        return len(self.used_cities) == len(self.cities.get_all_cities())
+        finish_game: bool = len(self.used_cities) == len(self.cities.get_all_cities())
+        if finish_game:
+            print("\nВсе города названы. Игра окончена!")
+            self._delete_game_state()
+        return
 
-    def save_game_state(self) -> None:
+    def _save_game_state(self) -> None:
         """
         Сохраняет состояние игры в файл
         """
@@ -251,21 +270,92 @@ class CityGame:
             "Последний город": self.last_city,
             "Список городов": self.cities_list,
         }
-        json_game_state = JsonFile('game_state.json')
+        json_game_state = JsonFile("game_state.json")
         json_game_state.write_data(game_state)
 
-    def load_game_state(self):
+    def _delete_game_state(self) -> None:
+        """
+        Удаляет файл состояния игры
+        """
+        if os.path.exists("game_state.json"):
+            os.remove("game_state.json")
+
+    def _load_game_state(self) -> bool:
         """
         Загружает состояние игры из файла
         """
-        json_game_state = JsonFile('game_state.json')
-        game_state = json_game_state.read_data()
+        json_game_state = JsonFile("game_state.json")
+        game_state: dict[str, Any] = json_game_state.read_data()
 
         if game_state:
             self.used_cities = set(game_state["Использованные города"])
             self.last_city = game_state["Последний город"]
             self.cities_list = game_state["Список городов"]
-            print("Игра загружена")
+            print("\nИгра загружена")
             return True
         else:
             return False
+
+
+class GameManager:
+    """
+    Фасад для управления игровым поцессом
+    """
+    def __init__( self, json_file: JsonFile, cities_serializer: CitiesSerializer, city_game: CityGame,
+    ) -> None:
+        """
+        Инициализирует объекты для работы с данными и игрой
+        Attributes:
+            json_file (JsonFile): Объект для работы с файлами
+            cities_serializer (CitiesSerializer): Объект для работы с данными о городах
+            city_game (CityGame): Объект для управления логикой игры
+        """
+        self.json_file: JsonFile = json_file
+        self.cities_serializer: CitiesSerializer = cities_serializer
+        self.city_game: CityGame = city_game
+
+    def __call__(self) -> None:
+        """
+        Запускает игру. Если есть незавершенная игра, предлагает продолжить ее или начать новую
+        """
+        if self.city_game._load_game_state():
+            print(f"\nНайдена незавершенная игра\nПоследний город был: {self.city_game.last_city}")
+            complete_game = input("\nПродолжить игру? (да/нет): ").lower()
+            if complete_game == "да":
+                self.run_game()
+                self.display_game_result()
+            if complete_game == "нет":
+                self.run_game()
+                self.display_game_result()
+            else:
+                print("\nНекорректный ввод! Старая игра завершена.")
+                self.run_game()
+                self.display_game_result()
+        else:
+            self.run_game()
+            self.display_game_result()
+
+    def run_game(self) -> None:
+        """
+        Координирует выполнение игры
+        """
+        self.city_game.start_game()
+        while not self.city_game.check_game_over():
+            city_input: str = input("\nДля выхода из игры введите: Стоп\nВведите название города: ")
+            if not self.city_game.human_turn(city_input):
+                return
+        self.city_game.computer_turn()
+
+    def display_game_result(self) -> None:
+        """
+        Отображает результаты игры после её завершения
+        """
+        print(f'\nВы назвали следующие города: {", ".join(self.city_game.used_cities)}\nВ количестве: {len(self.city_game.used_cities)}')
+
+
+if __name__ == "__main__":
+    json_file = JsonFile("cities.json")
+    cities_serializer = CitiesSerializer(json_file.read_data())
+    city_game = CityGame(cities_serializer)
+    game_manager = GameManager(json_file, cities_serializer, city_game)
+    game_manager()
