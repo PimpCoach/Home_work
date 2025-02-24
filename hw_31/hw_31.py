@@ -34,11 +34,11 @@ class JsonFile:
             print(f"Ошибка декодирования JSON в файле {self.file_path}!")
             return None
 
-    def write_data(self, data: list[dict[str, Any]]) -> bool:
+    def write_data(self, data: dict[str, Any]) -> bool:
         """
         Запись данных в JSON файл
         Args:
-            data (list[dict[str, Any]]): Данные которые нужно записать
+            data dict[str, Any]): Данные которые нужно записать
         Returns:
             True: Если данные успешно записались
             False: Если произошла ошибка
@@ -218,21 +218,24 @@ class CityGame:
     def computer_turn(self) -> None:
         """
         Обрабатывает ход компьютера
+        Создает список городов, которые можно использовать и выбирает один из них случайным образом
         """
         last_letter = self._last_letter().upper()
 
-        for city in self.cities_list:
-            if city not in self.used_cities and city[0].upper() == last_letter:
-                print(f"\nКомпьютер выбирает: {city}\n")
-                self.cities_list.remove(city)
-                self.used_cities.add(city)
-                self.last_city = city
-                return
-        print("Компьютер не смог найти подходящий город. Вы выиграли!")
+        computer_city_list: list[str] = [city for city in self.cities_list if city not in self.used_cities and city[0].upper() == last_letter]
+
+        if computer_city_list:
+            computer_city = choice(computer_city_list)
+            print(f"\nКомпьютер выбирает: {computer_city}\n")
+            self.cities_list.remove(computer_city)
+            self.used_cities.add(computer_city)
+            self.last_city = computer_city
+        else:
+            print("Компьютер не смог найти подходящий город. Вы выиграли!")
 
     def check_game_over(self) -> bool:
         """
-        Проверяет завершение игры и определяет победителя
+        Проверяет завершение игры
         Returns:
             bool: True, если все города использованы
                 False, если есть города
@@ -243,11 +246,26 @@ class CityGame:
         """
         Сохраняет состояние игры в файл
         """
-        game_state = {
-            "used_cities": list(self.used_cities),
-            "last_city": self.last_city,
-            "cities_list": self.cities_list,
+        game_state: dict[str, Any] = {
+            "Использованные города": list(self.used_cities),
+            "Последний город": self.last_city,
+            "Список городов": self.cities_list,
         }
         json_game_state = JsonFile('game_state.json')
         json_game_state.write_data(game_state)
 
+    def load_game_state(self):
+        """
+        Загружает состояние игры из файла
+        """
+        json_game_state = JsonFile('game_state.json')
+        game_state = json_game_state.read_data()
+
+        if game_state:
+            self.used_cities = set(game_state["Использованные города"])
+            self.last_city = game_state["Последний город"]
+            self.cities_list = game_state["Список городов"]
+            print("Игра загружена")
+            return True
+        else:
+            return False
