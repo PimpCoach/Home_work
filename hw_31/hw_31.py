@@ -163,7 +163,7 @@ class CityGame:
         bad_letters: set = all_last_letters - all_first_letters
         return bad_letters
 
-    def _last_letter(self) -> str:
+    def last_letter(self) -> str:
         """
         Возвращает последнюю букву предыдущего города
         Returns:
@@ -179,12 +179,13 @@ class CityGame:
         """
         Начинает игру, включая первый ход компьютера
         """
-        print("\nИгра началась")
+        print("\nНачалась новая игра!")
         first_city: str = choice(self.cities_list)
         self.last_city = first_city
         self.used_cities.add(first_city)
         self.cities_list.remove(first_city)
-        return self.computer_turn()
+        self._save_game_state()
+        print(f"Компьютер выбирает: {first_city}")
 
     def human_turn(self, city_input: str) -> bool:
         """
@@ -197,14 +198,24 @@ class CityGame:
             bool: True, если город соответствует всем критериям
                 False, если человек ошибся
         """
+        if not city_input.strip():
+            print("\nВы ничего не ввели. Вы проиграли!")
+            self._delete_game_state()
+            return False
+
         if city_input.lower() == "стоп":
             print("\nИгра окончена!")
             self._delete_game_state()
             return False
 
-        last_letter: str = self._last_letter().upper()
+        last_letter: str = self.last_letter().upper()
         if city_input[0].upper() != last_letter:
             print(f"\nГород должен начинаться на букву {last_letter}. Вы проиграли!")
+            self._delete_game_state()
+            return False
+
+        if city_input in self.used_cities:
+            print(f"\nГород {city_input} уже был использован. Вы проиграли!")
             self._delete_game_state()
             return False
 
@@ -212,24 +223,19 @@ class CityGame:
             print("\nТакого города нет. Вы проиграли!")
             self._delete_game_state()
             return False
-
-        if city_input in self.used_cities:
-            print("\nтот город уже был использован. Вы проиграли!")
-            self._delete_game_state()
-            return False
-
+        
         self.cities_list.remove(city_input)
         self.used_cities.add(city_input)
         self.last_city = city_input
         self._save_game_state()
         return True
 
-    def computer_turn(self) -> None:
+    def computer_turn(self) -> bool:
         """
         Обрабатывает ход компьютера
         Создает список городов, которые можно использовать и выбирает один из них случайным образом
         """
-        last_letter: str = self._last_letter().upper()
+        last_letter: str = self.last_letter().upper()
 
         computer_city_list: list[str] = [
             city
@@ -244,11 +250,13 @@ class CityGame:
             self.used_cities.add(computer_city)
             self.last_city = computer_city
             self._save_game_state()
+            return True
         else:
             print("\nКомпьютер не смог найти подходящий город. Вы выиграли!")
             self._delete_game_state()
+            return False
 
-    def check_game_over(self) -> bool:
+    def check_game_over(self)  -> bool:
         """
         Проверяет завершение игры
         Returns:
@@ -259,7 +267,7 @@ class CityGame:
         if finish_game:
             print("\nВсе города названы. Игра окончена!")
             self._delete_game_state()
-        return
+        return finish_game
 
     def _save_game_state(self) -> None:
         """
@@ -319,38 +327,63 @@ class GameManager:
         Запускает игру. Если есть незавершенная игра, предлагает продолжить ее или начать новую
         """
         if self.city_game._load_game_state():
-            print(f"\nНайдена незавершенная игра\nПоследний город был: {self.city_game.last_city}")
-            complete_game = input("\nПродолжить игру? (да/нет): ").lower()
-            if complete_game == "да":
-                self.run_game()
-                self.display_game_result()
-            if complete_game == "нет":
-                self.run_game()
-                self.display_game_result()
-            else:
-                print("\nНекорректный ввод! Старая игра завершена.")
-                self.run_game()
-                self.display_game_result()
+            print(f"\nНайдена незавершенная игра\nИспользованные города: {', '.join(self.city_game.used_cities)}\nПоследний город: {self.city_game.last_city}")
+            while True:
+                complete_game: str = input("\nПродолжить игру? (да/нет): ").lower().strip()
+                if complete_game == "да":
+                    print("\nИгра продолжается")
+                    self.run_game()
+                    break
+                elif complete_game == "нет":
+                    print("\nНезавершенная игра завершена!")
+                    self.new_game()
+                    break
+                else:
+                    print("Пожалуйста, введите 'да' или 'нет'")
         else:
+            self.city_game.start_game()
             self.run_game()
             self.display_game_result()
+
+    def new_game(self) -> None:
+        """
+        Запускает новую игру
+        """
+        self.display_game_result()
+        self.city_game._delete_game_state()
+        while True:
+            new_game: str = input("\nНачать новую игру? (да/нет): ").lower().strip()
+            if new_game == "да":
+                self.city_game.used_cities = set()
+                self.city_game.last_city = ""
+                self.city_game.cities_list = self.city_game._city_list()
+                self.city_game.start_game()
+                self.run_game()
+                break
+            elif new_game == "нет":
+                print("\nВсего хорошего!")
+                break
+            else:
+                print("Пожалуйста, введите 'да' или 'нет'")
 
     def run_game(self) -> None:
         """
         Координирует выполнение игры
+        Проверяет завершение игры и выполняет ходы игрока и компьютера
         """
-        self.city_game.start_game()
+        
         while not self.city_game.check_game_over():
-            city_input: str = input("\nДля выхода из игры введите: Стоп\nВведите название города: ")
+            last_letter: str = self.city_game.last_letter().upper()
+            city_input: str = input(f"\nДля выхода из игры введите: Стоп\nВведите название города начинающегося на букву {last_letter}: ")
             if not self.city_game.human_turn(city_input):
                 return
-        self.city_game.computer_turn()
+            self.city_game.computer_turn()
 
     def display_game_result(self) -> None:
         """
         Отображает результаты игры после её завершения
         """
-        print(f'\nВы назвали следующие города: {", ".join(self.city_game.used_cities)}\nВ количестве: {len(self.city_game.used_cities)}')
+        print(f'\nНазваны следующие города: {", ".join(self.city_game.used_cities)}\nВ количестве: {len(self.city_game.used_cities)}')
 
 
 if __name__ == "__main__":
