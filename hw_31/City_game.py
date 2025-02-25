@@ -72,14 +72,17 @@ class CityGameGUI:
             control_frame, text="Новая игра", command=self.start_new_game
         )  # Кнопка для новой игры. command - связывает нажатие кнопки с методом start_new_game
         new_game_button.pack(
-            side=tk.LEFT, padx=50
+            side=tk.LEFT, padx=5
         )  # Раасположение слева от оставшевогося свободного места
+
+        finish_button = tk.Button(control_frame, text='Закончить игру', command=self.stop_game)  # Кнопка для завершения игры. command - связывает нажатие кнопки с методом stop_game
+        finish_button.pack(side=tk.LEFT, padx=5)  # Раасположение слева от оставшевогося свободного места
 
         quit_button = tk.Button(
             control_frame, text="Выход", command=self.root.quit
         )  # Кнопка для выхода. command - связывает нажатие кнопки с методом quit
         quit_button.pack(
-            side=tk.RIGHT, padx=50
+            side=tk.RIGHT, padx=100
         )  # Раасположение слева от оставшевогося свободного места
 
     def start_new_game(self):
@@ -90,19 +93,24 @@ class CityGameGUI:
         self.game.start_game() # Запускает игру.
         self.update_history(f"Компьютер: {self.game.last_city}") # Отображает первый ход компьютера.
 
+    def stop_game(self):
+        if messagebox.askyesno("Завершение игры", "Вы уверены, что хотите завершить игру?"):
+            self.show_game_stats()
+
     def make_move(self):
         city = self.entry.get().strip()
-        self.entry.delete(0, tk.END)
-
-        if not city:
-            messagebox.showwarning("Ошибка", "Введите название города!")
+        self.entry.delete(0, tk.END) # Очищает поле ввода после получения значения.
+        
+        if city not in self.game.cities_list:
+            messagebox.showwarning("Ошибка", f"Города: {city} нет в списке!")
+            if city in self.game.used_cities:
+                messagebox.showwarning("Ошибка", f"Город: {city} уже был назван!")
+                return
             return
-
-        if city.lower() == "стоп":
-            if messagebox.askyesno(
-                "Завершение игры", "Вы уверены, что хотите завершить игру?"
-            ):
-                self.start_new_game()
+        
+        last_letter = self.game.last_letter().upper()
+        if city[0].upper() != last_letter:
+            messagebox.showwarning("Ошибка", f"Название города должно начинаться на {last_letter}!")
             return
 
         # Ход игрока
@@ -114,10 +122,34 @@ class CityGameGUI:
                 self.update_history(f"Компьютер: {self.game.last_city}")
 
             if self.game.check_game_over():
+                self.show_game_stats()
                 messagebox.showinfo("Конец игры", "Все города названы!")
                 self.start_new_game()
         else:
             messagebox.showwarning("Ошибка", "Неверный ход!")
+
+    def show_game_stats(self):
+        # Получаем список использованных городов для игрока и компьютера
+        player_cities = [city for city in self.game.used_cities if city != self.game.last_city]
+        computer_cities = [city for city in self.game.used_cities if city == self.game.last_city]
+
+        # Вычисляем количество использованных городов для игрока и компьютера
+        player_score = len(player_cities)
+        computer_score = len(computer_cities)
+
+        # Формируем текст статистики
+        stats_text = "\n" + "=" * 30 + "\n"
+        stats_text += "СТАТИСТИКА ИГРЫ\n"
+        stats_text += "=" * 30 + "\n\n"
+        stats_text += f"Ваш счет: {player_score}\n"
+        stats_text += f"Счет компьютера: {computer_score}\n\n"
+        stats_text += "Использованные города:\n"
+        stats_text += "\n".join(sorted(self.game.used_cities))
+        stats_text += "\n" + "=" * 30 + "\n"
+        
+        # Добавляем статистику в историю игры
+        self.history_text.insert(tk.END, stats_text)
+        self.history_text.see(tk.END)
 
     def update_history(self, text):
         self.history_text.insert(tk.END, text + "\n")
