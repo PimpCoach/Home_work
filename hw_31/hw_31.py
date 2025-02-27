@@ -208,11 +208,12 @@ class CityGame:
             self._delete_game_state()
             return False
 
-        last_letter: str = self.last_letter().upper()
-        if city_input[0].upper() != last_letter:
-            print(f"\nГород должен начинаться на букву {last_letter}. Вы проиграли!")
-            self._delete_game_state()
-            return False
+        if self.last_city:
+            last_letter: str = self.last_letter().upper()
+            if city_input[0].upper() != last_letter:
+                print(f"\nГород должен начинаться на букву {last_letter}. Вы проиграли!")
+                self._delete_game_state()
+                return False
 
         if city_input in self.used_cities:
             print(f"\nГород {city_input} уже был использован. Вы проиграли!")
