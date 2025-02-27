@@ -27,6 +27,9 @@ class CityGameGUI:
         self.root = root
         self.root.title("Игра в города")
         self.root.geometry("600x400")
+        
+        # Тип противника
+        self.opponent_type: str = "computer"
 
         # Инициализация игровой логики
         json_file = JsonFile("cities.json")
@@ -38,15 +41,88 @@ class CityGameGUI:
 
         # Добавляем приветствие
         welcome_text = "Добро пожаловать в игру 'Города'!\n\n"
-        welcome_text += "Для начала игры нажмите 'Новая игра' или 'Загрузить игру'\n"
-        welcome_text += "Для выхода нажмите 'Выход'\n"
-        self.history_text.insert(1.0, welcome_text)
+        self.history_text.insert(tk.END, welcome_text, "stats")
+
+        # Инструкции
+        instructions = "Для начала игры нажмите 'Новая игра' или 'Загрузить игру'\n"
+        instructions += "Для выхода нажмите 'Выход'\n"
+        self.history_text.insert(tk.END, instructions, "system")
         
         # Блокируем поле ввода и кнопку ответа, сохранить и закончить при запуске приложения
         self.entry.config(state='disabled')
         self.submit_button.config(state='disabled')
         self.save_button.config(state='disabled')
         self.finish_button.config(state='disabled')
+
+        # Инициализация игроков
+        self.player1_name: str = "Игрок 1"
+        self.player2_name: str = "Игрок 2"
+        self.current_player: int = 1
+
+        # Настройка цветовых тегов для текста
+        self.history_text.tag_config("player1", foreground="blue")
+        self.history_text.tag_config("player2", foreground="red")
+        self.history_text.tag_config("computer", foreground="green")
+        self.history_text.tag_config("system", foreground="purple")
+        self.history_text.tag_config("error", foreground="red", font=("Arial", 10, "bold"))
+        self.history_text.tag_config("stats", foreground="dark blue", font=("Arial", 10, "bold"))
+
+    def choose_opponent(self) -> None:
+        """
+        Выбор типа противника (компьютер или человек).
+        """
+        choice_window = tk.Toplevel(self.root) # Создаем новое окно
+        choice_window.title("Выбор противника")
+        choice_window.geometry("300x150")
+
+        tk.Label(choice_window, text="Выберите противника:", anchor='center', justify='center').pack(expand=True, fill='both') 
+
+        def set_opponent(opponent: str) -> None:
+            """
+            Устанавливает тип противника и закрывает окно выбора.
+            Args:
+                opponent (str): Тип противника (компьютер или человек).
+            """
+            self.opponent_type = opponent
+            choice_window.destroy()
+            if opponent == "human":
+                self.get_player_name()
+            else:
+                self.start_new_game()
+
+        tk.Button(choice_window, text="Играть с компьютером", command=lambda: set_opponent("computer")).pack(side=tk.LEFT, padx=6, pady=20)
+        tk.Button(choice_window, text="Играть с человеком", command=lambda: set_opponent("human")).pack(side=tk.RIGHT, padx=6, pady=20)
+
+    def get_player_name(self) -> None:
+        """
+        Получает имена игроков от пользователя.
+        """
+        name_window = tk.Toplevel(self.root)
+        name_window.title("Введите имена игроков")
+        name_window.geometry("300x150")
+
+        tk.Label(name_window, text="Введите имя первого игрока:", anchor='center', justify='center').pack(expand=True, fill='both')
+        player1_entry = tk.Entry(name_window)
+        player1_entry.pack()
+
+        tk.Label(name_window, text="Введите имя второго игрока:", anchor='center', justify='center').pack(expand=True, fill='both')
+        player2_entry = tk.Entry(name_window)
+        player2_entry.pack()
+
+        def save_names() -> None:
+            """
+            Сохраняет имена игроков и закрывает окно ввода имен.
+            """
+            player1: str = player1_entry.get().strip()
+            player2: str = player2_entry.get().strip()
+
+            self.player1_name = player1 if player1 else "Игрок 1"
+            self.player2_name = player2 if player2 else "Игрок 2"
+
+            name_window.destroy()
+            self.start_new_game()
+
+        tk.Button(name_window, text="Начать игру", command=save_names).pack(pady=10)
 
     def create_widgets(self) -> None:
         """
@@ -55,49 +131,41 @@ class CityGameGUI:
         - Поле ввода и кнопка ответа
         - Кнопки управления (новая игра, завершение, сохранить, загрузить, выход)
         """
-        history_frame = tk.Frame(self.root)  # Контейнер для истории игры
-        history_frame.pack(pady=15)  # Отступ сверху и снизу
-
-        self.history_text = tk.Text(history_frame, height=15, width=60)  # Текстовое поле для истории игры
-        self.history_text.pack(side=tk.LEFT)  # Расположение слева текстового поля. side=tk.LEFT - расположение слева
-
-        scrollbar = tk.Scrollbar(history_frame)  # Полоса прокрутки
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)  # Расположение справа текстового поля. fill=tk.Y - растяжение по вертикали
-
+        # Создание фрейма для истории игры
+        history_frame = tk.Frame(self.root)  
+        history_frame.pack(pady=15)  
+        # Текстовое поле для истории игры
+        self.history_text = tk.Text(history_frame, height=15, width=60)  
+        self.history_text.pack(side=tk.LEFT)  
+        # Полоса прокрутки
+        scrollbar = tk.Scrollbar(history_frame)  
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)  
         self.history_text.config(yscrollcommand=scrollbar.set)  # Связывает текстовое поле с полосой прокрутки
         scrollbar.config(command=self.history_text.yview)  # command - связывает полосу прокрутки с текстовым полем
 
-        # Поле ввода
-        input_frame = tk.Frame(self.root)  # Контейнер для поля ввода
-        input_frame.pack(pady=10)  # Создает отступ сверху и снизу
-
+        # Создание фрейма для поля ввода и кнопки ответа
+        input_frame = tk.Frame(self.root)  
+        input_frame.pack(pady=10) 
         self.entry = tk.Entry(input_frame, width=50)  # Поле ввода
-        self.entry.pack(side=tk.LEFT, padx=10)  # Расположение слева текстового поля. padx= - отступ слева и справа
-        self.entry.bind('<Return>', lambda event: self.make_move()) # Связывает нажатие клавиши Enter с методом make_move
-
-        self.submit_button = tk.Button(input_frame, text="Ответить", command=self.make_move)  # Кнопка для ответа. command - связывает нажатие кнопки с методом make_move
-        self.submit_button.pack(side=tk.LEFT)  # Расположение слева от оставшевогося свободного места
+        self.entry.pack(side=tk.LEFT, padx=10)  
+        self.entry.bind('<Return>', lambda event: self.make_move()) # Связывает нажатие клавиши Enter 
+        self.submit_button = tk.Button(input_frame, text="Ответить", command=self.make_move)  # Кнопка для ответа
+        self.submit_button.pack(side=tk.LEFT)  
 
         # Кнопки управления
-        control_frame = tk.Frame(self.root)  # Контейнер для кнопок управления
-        control_frame.pack(pady=15)  #  Создает отступ сверху и снизу
-
-        new_game_button = tk.Button(control_frame, text="Новая игра", command=self.start_new_game)  # Кнопка для новой игры. command - связывает нажатие кнопки с методом start_new_game
-        new_game_button.pack(side=tk.LEFT, padx=16)  # Раасположение слева от оставшевогося свободного места
-
-        self.finish_button = tk.Button(control_frame, text="Закончить игру", command=self.stop_game)  # Кнопка для завершения игры. command - связывает нажатие кнопки с методом stop_game
+        control_frame = tk.Frame(self.root)  
+        control_frame.pack(pady=15) 
+        new_game_button = tk.Button(control_frame, text="Новая игра", command=self.choose_opponent)  
+        new_game_button.pack(side=tk.LEFT, padx=16)  
+        self.finish_button = tk.Button(control_frame, text="Закончить игру", command=self.stop_game)  
         self.finish_button.pack(side=tk.LEFT, padx=16)  
-
-        self.save_button = tk.Button(control_frame, text="Сохранить игру", command=self.save_game) # Кнопка для сохранения игры. command - связывает нажатие кнопки с методом save_game
+        self.save_button = tk.Button(control_frame, text="Сохранить игру", command=self.save_game) 
         self.save_button.pack(side=tk.LEFT, padx=16)
-
-        load_button = tk.Button(control_frame, text="Загрузить игру", command=self.load_game) # Кнопка для загрузки игры. command - связывает нажатие кнопки с методом load_game
+        load_button = tk.Button(control_frame, text="Загрузить игру", command=self.load_game) 
         load_button.pack(side=tk.LEFT, padx=16)
-
-        quit_button = tk.Button(control_frame, text="Выход", command=self.quit_game)  # Кнопка для выхода. command - связывает нажатие кнопки с методом quit
-        quit_button.pack(side=tk.RIGHT, padx=16)  # Раасположение слева от оставшевогося свободного места
-
-
+        quit_button = tk.Button(control_frame, text="Выход", command=self.quit_game)  
+        quit_button.pack(side=tk.RIGHT, padx=16) 
+        
     def save_game(self) -> None:
         """
         Сохраняет текущее состояние игры в JSON файл.
@@ -111,7 +179,11 @@ class CityGameGUI:
             "used_cities": list(self.game.used_cities),
             "last_city": self.game.last_city,
             "cities_list": self.game.cities_list,
-            "history": self.history_text.get(1.0, tk.END)
+            "history": self.history_text.get(1.0, tk.END),
+            "opponent_type": self.opponent_type,
+            "current_player": self.current_player,
+            "player1_name": self.player1_name,
+            "player2_name": self.player2_name
         }
         
         with open("game_save.json", "w", encoding="utf-8") as f:
@@ -136,13 +208,24 @@ class CityGameGUI:
             with open("game_save.json", "r", encoding="utf-8") as f:
                 game_state = json.load(f)
             
+            
             self.game.used_cities = set(game_state["used_cities"])
             self.game.last_city = game_state["last_city"]
             self.game.cities_list = game_state["cities_list"]
+            self.opponent_type = game_state["opponent_type"]
+            self.current_player = game_state["current_player"]
+            self.player1_name = game_state["player1_name"]
+            self.player2_name = game_state["player2_name"]
 
             self.history_text.delete(1.0, tk.END)
 
-            self.update_history("\nИгра загружена. Ваш ход!")
+            if self.opponent_type == "human":
+                curent_player_name = self.player1_name if self.current_player == 1 else self.player2_name
+                self.update_history('\nИгра загружена.')
+                self.update_history(f'\nИгрок {curent_player_name} ходит.')
+            else:
+                self.update_history("\nИгра загружена. Ваш ход!")
+            
             self.update_history(f'\nИспользованные города: {", ".join(sorted(self.game.used_cities))}')
             self.update_history(f'\nПоследний названный город: {self.game.last_city}')
             self.update_history(f"Назовите город на букву: {self.game.last_letter().upper()}")
@@ -174,10 +257,17 @@ class CityGameGUI:
 
         self.game.used_cities.clear()  # Очищает список использованных городов.
         self.game.last_city = ""  # Сбрасывает последний город.
-        self.game.cities_list = (self.game._city_list())  # Получает список всех доступных городов.
+        self.game.cities_list = self.game._city_list()  # Получает список всех доступных городов.
         self.history_text.delete(1.0, tk.END)  # Очищает текстовое поле. 1.0 - начало текста. tk.END - конец текста. Удаляет все символы от начала до конца.
-        self.game.start_game()  # Запускает игру.
-        self.update_history(f"Компьютер: {self.game.last_city}")  # Отображает первый ход компьютера.
+        self.current_player = 1  # Устанавливает текущего игрока на 1.
+
+        if self.opponent_type == 'computer':
+            self.game.start_game()  # Запускает игру.
+            self.update_history(f"Компьютер: {self.game.last_city}", "computer")  # Отображает первый ход компьютера.
+            self.update_history(f"Назовите город на букву: {self.game.last_letter().upper()}", "system")  # Отображает последнюю букву.
+        else:
+            self.update_history(f'Игра началась! Ход игрока: {self.player1_name}', "player1")
+        
         self.entry.config(state='normal')  # Разрешает ввод пользователя.
         self.submit_button.config(state='normal')  # Разрешает кнопку ответа.
         self.finish_button.config(state='normal')  # Разрешает кнопку завершения игры.
@@ -227,25 +317,37 @@ class CityGameGUI:
                 return
             return
 
-        last_letter: str = self.game.last_letter().upper()
-        if city[0].upper() != last_letter:
-            messagebox.showwarning("Ошибка", f"Название города должно начинаться на {last_letter}!")
-            return
-
-        # Ход игрока
-        if self.game.human_turn(city):
-            self.update_history(f"Вы: {city}")
-
-            # Ход компьютера
-            if self.game.computer_turn():
-                self.update_history(f"Компьютер: {self.game.last_city}")
-
-            if self.game.check_game_over():
-                self.show_game_stats()
-                messagebox.showinfo("Конец игры", "Все города названы!")
-                self.start_new_game()
+        if self.game.last_city and len(self.game.last_city) > 0:
+            last_letter: str = self.game.last_letter().upper()
+            if city[0].upper() != last_letter:
+                messagebox.showwarning("Ошибка", f"Название города должно начинаться на {last_letter}!")
+                return
+        
+        if self.opponent_type == 'computer':
+            # Ход игрока
+            if self.game.human_turn(city):
+                self.update_history(f"Вы: {city}", 'player1')
+                # Ход компьютера
+                if self.game.computer_turn():
+                    self.update_history(f"Компьютер: {self.game.last_city}", "computer")
+                    
         else:
-            messagebox.showwarning("Ошибка", "Неверный ход!")
+            # Если играют два игрока
+            if self.game.human_turn(city):
+                current_player_name: str = self.player1_name if self.current_player == 1 else self.player2_name
+                player_tag = 'player1' if self.current_player == 1 else 'player2'
+                self.update_history(f"{current_player_name}: {city}", player_tag)
+                self.game.last_city = city
+                self.current_player = 2 if self.current_player == 1 else 1
+                next_player_name: str = self.player1_name if self.current_player == 1 else self.player2_name
+                self.update_history(f"Ход игрока: {next_player_name}")
+
+        self.update_history(f"Назовите город на букву: {self.game.last_letter().upper()}")
+
+        if self.game.check_game_over():
+            self.show_game_stats()
+            messagebox.showinfo("Конец игры", "Все города названы!")
+            self.start_new_game()
 
     def show_game_stats(self) -> None:
         """
@@ -255,39 +357,36 @@ class CityGameGUI:
         - Добавляет статистику в историю игры
         """
 
-        # Получаем список использованных городов для игрока и компьютера
-        player_cities: list[str] = [
-            city for city in self.game.used_cities if city == self.game.last_city
-        ]
-        computer_cities: list[str] = [
-            city for city in self.game.used_cities if city != self.game.last_city
-        ]
-
-        # Вычисляем количество использованных городов для игрока и компьютера
-        player_score: int = len(player_cities)
-        computer_score: int = len(computer_cities)
-
         # Формируем текст статистики
         stats_text: str = "\n" + "=" * 30 + "\n"
-        stats_text += "СТАТИСТИКА ИГРЫ\n"
-        stats_text += "=" * 30 + "\n\n"
-        stats_text += f"Ваш счет: {player_score}\n"
-        stats_text += f"Счет компьютера: {computer_score}\n\n"
-        stats_text += "Использованные города:\n"
-        stats_text += "\n".join(sorted(self.game.used_cities))
-        stats_text += "\n" + "=" * 30 + "\n"
-
-        # Добавляем статистику в историю игры
         self.history_text.insert(tk.END, stats_text)
+
+        self.history_text.insert(tk.END, "Статистика игры:\n", 'stats')
+        self.history_text.insert(tk.END, "=" * 30 + "\n\n")
+
+        if self.opponent_type == 'computer':
+            # Получаем список использованных городов для игрока и компьютера
+            player_cities: list[str] = [city for city in self.game.used_cities if city == self.game.last_city]
+            computer_cities: list[str] = [city for city in self.game.used_cities if city != self.game.last_city]
+            self.history_text.insert(tk.END, f"Ваш счет: {len(player_cities)}\n", "player1")
+            self.history_text.insert(tk.END, f"Счет компьютера: {len(computer_cities)}\n\n", "computer")
+        else:
+            self.history_text.insert(tk.END, f"Счет {self.player1_name}: {len([city for city in list(self.game.used_cities)[::2]])}\n", "player1")
+            self.history_text.insert(tk.END, f"Счет {self.player2_name}: {len([city for city in list(self.game.used_cities)[1::2]])}\n", "player2")
+
+        self.history_text.insert(tk.END, "Использованные города:\n", "system")
+        self.history_text.insert(tk.END, ", ".join(sorted(self.game.used_cities)) + "\n", 'system')
+        self.history_text.insert(tk.END, "=" * 30 + "\n")
         self.history_text.see(tk.END)
 
-    def update_history(self, text: str) -> None:
+    def update_history(self, text: str, player: str = 'system') -> None:
         """
-        Добавляет новую запись в историю игры.
+        Добавляет новую запись в историю игры с указанным цветом.
         Args:
             text (str): Текст для добавления в историю
+            player (str): Тип игрока ('player1', 'player2' или 'system')
         """
-        self.history_text.insert(tk.END, text + "\n")
+        self.history_text.insert(tk.END, text + "\n", player)
         self.history_text.see(tk.END)
 
 
