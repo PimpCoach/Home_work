@@ -322,7 +322,16 @@ class CityGameGUI:
             if city[0].upper() != last_letter:
                 messagebox.showwarning("Ошибка", f"Название города должно начинаться на {last_letter}!")
                 return
-        
+            
+            next_letter = city[-1] if city[-1].lower() not in ['ь', 'ъ', 'ы'] else city[-2]
+            available_cities = [c for c in self.game.cities_list
+                            if c[0].upper() == next_letter.upper()
+                            and c not in self.game.used_cities]
+
+            if not available_cities:
+                messagebox.showwarning("Ошибка", f"После города {city} нет доступных ходов!")
+                return
+                    
         if self.opponent_type == 'computer':
             # Ход игрока
             if self.game.human_turn(city):
@@ -366,10 +375,8 @@ class CityGameGUI:
 
         if self.opponent_type == 'computer':
             # Получаем список использованных городов для игрока и компьютера
-            player_cities: list[str] = [city for city in self.game.used_cities if city == self.game.last_city]
-            computer_cities: list[str] = [city for city in self.game.used_cities if city != self.game.last_city]
-            self.history_text.insert(tk.END, f"Ваш счет: {len(player_cities)}\n", "player1")
-            self.history_text.insert(tk.END, f"Счет компьютера: {len(computer_cities)}\n\n", "computer")
+            self.history_text.insert(tk.END, f"Ваш счет: {len([city for city in list(self.game.used_cities)[1::2]])}\n", "player1")
+            self.history_text.insert(tk.END, f"Счет компьютера: {len([city for city in list(self.game.used_cities)[::2]])}\n\n", "computer")
         else:
             self.history_text.insert(tk.END, f"Счет {self.player1_name}: {len([city for city in list(self.game.used_cities)[::2]])}\n", "player1")
             self.history_text.insert(tk.END, f"Счет {self.player2_name}: {len([city for city in list(self.game.used_cities)[1::2]])}\n", "player2")
