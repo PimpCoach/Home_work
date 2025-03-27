@@ -90,10 +90,8 @@ ALTER TABLE Services ADD COLUMN duration_minutes INTEGER NOT NULL DEFAULT 60;
 ALTER TABLE RecordingClient ADD COLUMN start_time TEXT NOT NULL DEFAULT '10:00';
 ALTER TABLE RecordingClient ADD COLUMN end_time TEXT NOT NULL DEFAULT '22:00';
 
-CREATE TABLE IF NOT EXISTS Status_id (
-    status_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    status_name TEXT NOT NULL UNIQUE
-);
+
+
 
 ALTER TABLE RecordingClient ADD COLUMN status_id INTEGER REFERENCES AppointmentServices(status_id);
 ALTER TABLE RecordingClient DROP COLUMN record_status;
@@ -103,11 +101,13 @@ COMMIT;
 -- 2. Новые таблицы
 
 -- Статус записи
-CREATE TABLE IF NOT EXISTS StatusDictionary(
+CREATE TABLE IF NOT EXISTS StatusDictionary (
     status_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    status_name TEXT NOT NULL UNIQUE,
-    status_description TEXT
+    status_name TEXT NOT NULL UNIQUE
 );
+
+ALTER TABLE Status_id RENAME TO StatusDictionary;
+ALTER TABLE StatusDictionary ADD COLUMN status_description TEXT;
 
 -- Отзывы
 CREATE TABLE IF NOT EXISTS Reviews(
@@ -115,16 +115,163 @@ CREATE TABLE IF NOT EXISTS Reviews(
     appointment_id INTEGER NOT NULL,
     rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
     comment TEXT,
-    review_date TEXT DEFAULT CURRENT_TIMESTAMP
+    review_date TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (appointment_id) REFERENCES Appointments(id)
 );
 
 -- Расписание мастера
-CREATE TABLE IF NOT EXISTS MasterShedule(
-    shedule_id INTEGER PRIMARY KEY AUTOINCREMENT,
+CREATE TABLE IF NOT EXISTS MasterSchedule (
+    schedule_id INTEGER PRIMARY KEY AUTOINCREMENT,
     master_id INTEGER NOT NULL,
-    day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 1 AND 7),
+    day_of_week INTEGER NOT NULL CHECK(day_of_week BETWEEN 1 AND 7),
     start_time TEXT NOT NULL,
     end_time TEXT NOT NULL,
     status_id INTEGER NOT NULL,
-    comment TEXT
+    comment TEXT,
+    FOREIGN KEY (master_id) REFERENCES Masters(master_id),
+    FOREIGN KEY (status_id) REFERENCES ScheduleStatus(status_id)
 );
+
+CREATE TABLE IF NOT EXISTS ScheduleStatus (
+    status_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    status_name TEXT NOT NULL UNIQUE
+);
+
+-- Серия запросов в БД
+
+-- 1. Новая запись на услугу 
+BEGIN TRANSACTION;
+
+    INSERT INTO RecordingClient('client_name', 'client_phone', 'master_id', 'start_time', 'end_time', 'status_id')
+    VALUES("Евгений", "89991234567", 1, "21:00", "22:00", 1);
+
+    SELECT RecordingClient.*, StatusDictionary.status_name FROM RecordingClient
+    JOIN StatusDictionary ON RecordingClient.status_id = StatusDictionary.status_id;
+
+COMMIT;
+
+-- 2. Изменение статуса записи
+BEGIN TRANSACTION;
+
+INSERT INTO StatusDictionary(status_name) VALUES("Подверждена");
+INSERT INTO StatusDictionary(status_name) VALUES("Отмена");
+INSERT INTO StatusDictionary(status_name) VALUES("В ожидании");
+INSERT INTO StatusDictionary(status_name) VALUES("Завершена");
+
+COMMIT;
+
+SELECT * FROM StatusDictionary
+-- Изменение только что добавленной записи статуса
+BEGIN TRANSACTION;
+
+UPDATE StatusDictionary SET status_name = "Отменена" WHERE status_id = 2;
+
+COMMIT;
+
+-- Изменение статуса записи 
+BEGIN TRANSACTION;
+
+UPDATE RecordingClient SET status_id = 2 WHERE client_id = 5;
+
+COMMIT;
+
+-- 3. Корректировка цены на услуги
+BEGIN TRANSACTION;
+
+-- Обновление цены в таблце Services 
+UPDATE Services SET price = "1800 - 2200" where services_id = 1;
+UPDATE Services SET price = "1600 - 1800" where services_id = 2;
+
+-- Обновление индивидуальной цены в таблице MastersServices
+UPDATE MastersServices SET price = 2200 where services_id = 1 and master_id = 1;
+UPDATE MastersServices SET price = 1800 where services_id = 2 and master_id = 1;
+UPDATE MastersServices SET price = 600 where services_id = 3;
+UPDATE MastersServices SET price = 800 where services_id = 4;
+UPDATE MastersServices SET price = 500 where services_id = 5;
+UPDATE MastersServices SET price = 1800 where services_id = 1 and master_id = 2;
+UPDATE MastersServices SET price = 1600 where services_id = 2 and master_id = 2;
+
+COMMIT;
+
+-- 4. Обновление расписания мастера
+
+-- Обновление статуса расписания
+INSERT INTO ScheduleStatus (status_name) VALUES ('Рабочий день');
+INSERT INTO ScheduleStatus (status_name) VALUES ('Выходной');
+
+-- Добавление нового расписания
+INSERT INTO MasterSchedule (master_id, day_of_week, start_time, end_time, status_id, comment)
+VALUES (1, 1, '10:00', '15:00', 1, "Работает"),
+    (1, 2, '10:00', '18:00', 2, "Заболел"),
+    (1, 3, '10:00', '18:00', 1, "Работает"),
+    (1, 4, '10:00', '18:00', 2, "В отпуске"),
+    (1, 5, '15:00', '22:00', 1, "Работает"),
+    (1, 6, '15:00', '22:00', 1, "Работает"),
+    (1, 7, '10:00', '18:00', 2, "На учебе"),
+    (2, 1, '15:00', '22:00', 1, "Работает"),
+    (2, 2, '10:00', '18:00', 1, "Работает"),
+    (2, 3, '10:00', '18:00', 2, "Заболел"),
+    (2,4, '15:00', '22:00', 1, "Работает"),
+    (2,5, '10:00', '18:00', 2, "Забухал"),
+    (2,6, '15:00', '22:00', 1, "Работает"),
+    (2,7, '10:00', '18:00', 2, "Уволен");
+
+SELECT MasterSchedule.*, ScheduleStatus.status_name FROM MasterSchedule
+JOIN ScheduleStatus ON MasterSchedule.status_id = ScheduleStatus.status_id;
+
+-- Обновить расписание мастера
+BEGIN TRANSACTION;
+
+UPDATE MasterSchedule SET start_time = '12:00', end_time = '18:00' WHERE master_id = 1 AND day_of_week = 1;
+
+COMMIT;
+
+-- 5. Добавление нового статуса (Уже сделано в 2. Изменение статуса записи)
+
+BEGIN TRANSACTION;
+
+INSERT INTO StatusDictionary(status_name) VALUES("Подверждена");
+INSERT INTO StatusDictionary(status_name) VALUES("Отменена");
+INSERT INTO StatusDictionary(status_name) VALUES("В ожидании");
+INSERT INTO StatusDictionary(status_name) VALUES("Завершена");
+
+COMMIT;
+
+-- 6. Добавление отзыва
+BEGIN TRANSACTION;
+
+INSERT INTO Reviews (appointment_id, rating, comment)
+VALUES (1, 5, 'Отличная работа! Спасибо!'),
+    (2, 4, 'Хороший мастер, но дорого'),
+    (3, 5, 'Очень доволен работой мастера'),
+    (4, 3, 'Нормально, но дорого');
+
+ROLLBACK;
+    SELECT "Статусы уже существуют" AS Error;
+
+-- 7. Массовая вставка новых услуг
+BEGIN TRANSACTION;
+
+INSERT INTO Services(`title`, `services_description`, `price`, `duration_minutes`)
+VALUES ('Дед', "Окрас волос и бороды в седой цвет", 2500, 120),
+    ("Х", "Бритье наголо", 100, 30);
+
+SELECT * FROM Services
+
+COMMIT;
+
+-- 8. Отмена записи на услугу
+
+SELECT * FROM StatusDictionary;
+
+    SELECT RecordingClient.*, StatusDictionary.status_name FROM RecordingClient
+    JOIN StatusDictionary ON RecordingClient.status_id = StatusDictionary.status_id;
+
+BEGIN TRANSACTION;
+-- Изменение статуса записи
+UPDATE RecordingClient SET status_id = 2 WHERE client_id = 3;
+
+-- Удаление связанных  записей из таблицы AppointmentServices
+DELETE FROM RecordingClient WHERE status_id = 2;
+
+COMMIT;
